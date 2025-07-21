@@ -7,9 +7,14 @@ d) handle signals
 """
 import shlex
 import subprocess
+import os
+import sys
+import signal
 
-import shlex
-import subprocess
+def signal_handler(signum, frame):
+    print()
+    print("MiniShell> ", end='', flush=True)
+signal.signal(signal.SIGINT, signal_handler)
 
 def parse_pipeline(cmd):       # STEP 2
     """Step 1: Parse the pipeline command into individual command parts."""
@@ -42,7 +47,7 @@ def execute_pipeline(pipeline):
             output_file = parts[1].strip()
             append = False
 
-        args = shlex.split(cmd)
+        args = cmd
 
         stdin = prev_pipe
         stdout = subprocess.PIPE if i < num_cmds - 1 else None
@@ -125,7 +130,11 @@ def redirection(cmd):   # Step 3
 
 while True:
     print()
-    cmd = input("Enter the command: ")
+    try:
+        cmd = input("Enter the command: ")
+    except KeyboardInterrupt:
+        print()
+        continue
     if cmd.lower() == "exit":
         print("Chal Bye")
         break
