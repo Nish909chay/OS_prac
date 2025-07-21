@@ -8,42 +8,49 @@ d) handle signals
 import shlex
 import subprocess
 
+import shlex
+import subprocess
+
+def parse_pipeline(cmd):       # STEP 2
+    """Step 1: Parse the pipeline command into individual command parts."""
+    return [shlex.split(part.strip()) for part in cmd.split('|')]
+
+def execute_pipeline(commands):     # STEP 2
+    """Step 2: Execute a list of commands as a pipeline."""
+    prev_proc = None
+    for i, part in enumerate(commands):
+        if i == 0:
+            proc = subprocess.Popen(part, stdout=subprocess.PIPE)
+        elif i == len(commands) - 1:
+            proc = subprocess.Popen(part, stdin=prev_proc.stdout)
+        else:
+            proc = subprocess.Popen(part, stdin=prev_proc.stdout, stdout=subprocess.PIPE)
+
+        if prev_proc:
+            prev_proc.stdout.close()
+        prev_proc = proc
+
+    proc.communicate()
+
 def run_command(cmd):
-    # step 1 - parse the pipeline
-    if "|" in cmd:      # "ls -l | grep txt | sort"
-        parts = [shlex.split(part.strip()) for part in cmd.split('|')] # ['ls', '-l']
-        prev_proc = None
-        
-        for i, part in enumerate(parts):
-            if i == 0:
-                proc = subprocess.Popen(part, stdout = subprocess.PIPE)
-            elif(i == len(parts) - 1):
-                proc = subprocess.Popen(part, stdin = prev_proc.stdout)
-            else:
-                proc = subprocess.Popen(part, stdin = prev_proc.stdout, stdout = subprocess.PIPE)
-            if prev_proc:
-                prev_proc.stdout.close()
-            prev_proc = proc       
-        proc.communicate()        
-            
-    else:   # no pipelined | command
+    if "|" in cmd:
+        commands = parse_pipeline(cmd)
+        execute_pipeline(commands)
+    else:       # STEP 1
         args = shlex.split(cmd)
         try:
             subprocess.run(args)
-        except FileNotFoundError:   # invalid commands
+        except FileNotFoundError:
             print("invalid command")
         except Exception as e:
-            print(f"Error : {e}")
-    
-    
+            print(f"Error: {e}")
+
 while True:
-    print("Enter the command : ", )
-    cmd = input()
-    
-    if(cmd.lower() == "exit"):
+    cmd = input("Enter the command: ")
+    if cmd.lower() == "exit":
         print("Chal Bye")
         break
-    
     if cmd.strip():
         run_command(cmd)
+
     
