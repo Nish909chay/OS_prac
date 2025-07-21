@@ -4,6 +4,14 @@ You're expected to build your own threading library (like pthread) and implement
 1:1         Each user thread maps to one kernel thread. You use clone() or pthread_create() and let the OS handle scheduling.
 Many:1      Many user threads map to one kernel thread. You implement your own scheduler — if one thread blocks, all threads block.
 Many:Many   Many user threads map to many kernel threads. Your library manages which user thread runs on which kernel thread.
++ Preemptive Scheduling 
+issue - The issue is that setitimer and struct itimerval are part of POSIX (Linux/Unix) 
+        and are not available on Windows. 
+        Your code will not compile on Windows because these headers and functions 
+        do not exist in the Windows API.
+hence simulate preemptive multitasking (like round-robin) 
+    Every thread runs a few instructions (or iterations of its function), 
+    then calls my_thread_yield() voluntarily
 */
 
 #ifndef MYTHREAD_H
@@ -69,16 +77,22 @@ void my_thread_create(my_thread **head, void (*function)(void *), void *arg)
     if (setjmp(new->context) == 0) {
         // Initial save; will return 0
     }
-
-    if (*head == NULL) {
+    // Round Robin - circular list
+    if (*head == NULL) 
+    {
         *head = new;
-    } else {
+        new->next = new;  // Points to itself (circular)
+    } 
+    else 
+    {
         my_thread *temp = *head;
-        while (temp->next != NULL) {
+        while (temp->next != *head) {
             temp = temp->next;
         }
         temp->next = new;
+        new->next = *head;
     }
+
 }
 
 
@@ -147,6 +161,8 @@ void my_thread_exit()
     current_thread->state = DEAD;
     longjmp(main_context, 1);  // Return to main thread runner
 }
+
+
 
 void print_numbers(void *arg) {
     int id = *((int*)arg);
