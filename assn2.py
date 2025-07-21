@@ -15,22 +15,63 @@ def parse_pipeline(cmd):       # STEP 2
     """Step 1: Parse the pipeline command into individual command parts."""
     return [shlex.split(part.strip()) for part in cmd.split('|')]
 
-def execute_pipeline(commands):     # STEP 2
-    """Step 2: Execute a list of commands as a pipeline."""
-    prev_proc = None
-    for i, part in enumerate(commands):
-        if i == 0:
-            proc = subprocess.Popen(part, stdout=subprocess.PIPE)
-        elif i == len(commands) - 1:
-            proc = subprocess.Popen(part, stdin=prev_proc.stdout)
-        else:
-            proc = subprocess.Popen(part, stdin=prev_proc.stdout, stdout=subprocess.PIPE)
+def execute_pipeline(pipeline):
+    num_cmds = len(pipeline)
+    processes = []
+    prev_pipe = None
 
-        if prev_proc:
-            prev_proc.stdout.close()
-        prev_proc = proc
+    for i, cmd in enumerate(pipeline):
+        # Handle redirection for the current command
+        input_file = None
+        output_file = None
+        append = False
 
-    proc.communicate()
+        if '<' in cmd:
+            parts = cmd.split('<')
+            cmd = parts[0].strip()
+            input_file = parts[1].strip()
+
+        if '>>' in cmd:
+            parts = cmd.split('>>')
+            cmd = parts[0].strip()
+            output_file = parts[1].strip()
+            append = True
+        elif '>' in cmd:
+            parts = cmd.split('>')
+            cmd = parts[0].strip()
+            output_file = parts[1].strip()
+            append = False
+
+        args = shlex.split(cmd)
+
+        stdin = prev_pipe
+        stdout = subprocess.PIPE if i < num_cmds - 1 else None
+
+        if input_file:
+            stdin = open(input_file, 'r')
+
+        if output_file:
+            mode = 'a' if append else 'w'
+            stdout = open(output_file, mode)
+
+        p = subprocess.Popen(args, stdin=stdin, stdout=stdout)
+
+        if prev_pipe:
+            prev_pipe.close()
+
+        # close file if redirection was done
+        if input_file and stdin != subprocess.PIPE:
+            stdin.close()
+
+        if output_file and stdout != subprocess.PIPE:
+            stdout.close()
+
+        prev_pipe = p.stdout
+        processes.append(p)
+
+    for p in processes:
+        p.wait()
+
 
 def run_command(cmd):
     if "|" in cmd:
