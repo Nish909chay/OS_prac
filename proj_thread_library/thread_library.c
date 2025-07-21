@@ -1,5 +1,5 @@
 /*
-Multithreading Library
+Multithreading Library - Many:1 cooperative threading library with simulated round-robin scheduling
 You're expected to build your own threading library (like pthread) and implement three threading models:
 1:1         Each user thread maps to one kernel thread. You use clone() or pthread_create() and let the OS handle scheduling.
 Many:1      Many user threads map to one kernel thread. You implement your own scheduler — if one thread blocks, all threads block.
@@ -95,7 +95,6 @@ void my_thread_create(my_thread **head, void (*function)(void *), void *arg)
 
 }
 
-
 void my_thread_yield()
 {
     /*
@@ -106,21 +105,24 @@ void my_thread_yield()
     */
     if (setjmp(current_thread->context) == 0)
     {
-        my_thread *temp = thread_head;
-        while (temp->next != NULL)
-            temp = temp->next;
+        my_thread *next = current_thread->next;
 
-        temp->next = current_thread;        // Move to end of queue
-        current_thread->state = READY;
+        // Find the next READY thread in circular queue
+        while (next != current_thread && next->state != READY)
+            next = next->next;
 
-        thread_head = thread_head->next;    // Remove from front
-        current_thread->next = NULL;
+        // If no other READY thread is found, return to main
+        if (next == current_thread && current_thread->state != READY) {
+            longjmp(main_context, 1);
+        }
 
-        current_thread = thread_head;       // Switch to next thread
+        current_thread = next;
         current_thread->state = RUNNING;
         longjmp(current_thread->context, 1);
     }
 }
+
+
 
 
 void my_thread_run(my_thread **head)
@@ -132,25 +134,64 @@ void my_thread_run(my_thread **head)
     - Saves main context using setjmp
     - Transfers control to thread using longjmp
     */
-    while (*head && (*head)->state == DEAD) {
-        my_thread *dead = *head;
-        *head = dead->next;
-        free(dead->stack);
-        free(dead);
-    }
-
+    // If list is empty
     if (*head == NULL) {
         printf("No threads to run.\n");
         return;
     }
 
+    // Clean DEAD threads from circular queue
+    my_thread *prev = NULL;
+    my_thread *curr = *head;
+
+    int cleaned = 0;
+    do {
+        if (curr->state == DEAD) {
+            my_thread *to_delete = curr;
+
+            if (curr == curr->next) {
+                // Only one thread in list
+                free(curr->stack);
+                free(curr);
+                *head = NULL;
+                return;
+            }
+
+            if (curr == *head)
+                *head = curr->next;
+
+            // Finding previous node
+            prev = curr;
+            while (prev->next != curr)
+                prev = prev->next;
+
+            prev->next = curr->next;
+            curr = curr->next;
+
+            free(to_delete->stack);
+            free(to_delete);
+            cleaned = 1;
+        } else {
+            curr = curr->next;
+        }
+    } while (curr != *head);
+
+    // If all were DEAD and removed
+    if (*head == NULL) {
+        printf("All threads finished.\n");
+        return;
+    }
+
+    // Start running the thread at head
     current_thread = *head;
     current_thread->state = RUNNING;
 
     if (setjmp(main_context) == 0) {
-        longjmp(current_thread->context, 1);  // Switch to thread
+        longjmp(current_thread->context, 1);
     }
 }
+
+
 
 void my_thread_exit()
 {
@@ -159,8 +200,23 @@ void my_thread_exit()
     - Returns control back to main using longjmp
     */
     current_thread->state = DEAD;
-    longjmp(main_context, 1);  // Return to main thread runner
+
+    my_thread *next = current_thread->next;
+
+    // Find next READY thread in the circular list
+    while (next != current_thread && next->state != READY)
+        next = next->next;
+
+    if (next == current_thread) {
+        // No other READY threads left
+        longjmp(main_context, 1);
+    }
+
+    current_thread = next;
+    current_thread->state = RUNNING;
+    longjmp(current_thread->context, 1);
 }
+
 
 
 
