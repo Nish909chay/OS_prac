@@ -132,8 +132,8 @@ while True:
     print()
     try:
         cmd = input("Enter the command: ")
-    except KeyboardInterrupt:
-        print()
+    except (KeyboardInterrupt, EOFError):
+        print("Received interrupt. Type 'exit' to quit.")
         continue
     if cmd.lower() == "exit":
         print("Chal Bye")
