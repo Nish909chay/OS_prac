@@ -37,15 +37,53 @@ def run_command(cmd):
         commands = parse_pipeline(cmd)
         execute_pipeline(commands)
     else:       # STEP 1
-        args = shlex.split(cmd)
+        args, stdin_file, stdout_file, append_mode = redirection(cmd)
+        stdin = open(stdin_file, 'r') if stdin_file else None
+        mode = 'a' if append_mode else 'w'
+        stdout = open(stdout_file, mode) if stdout_file else None
+        
         try:
-            subprocess.run(args)
+            subprocess.run(args, stdin = stdin, stdout = stdout)
         except FileNotFoundError:
             print("invalid command")
         except Exception as e:
             print(f"Error: {e}")
+        finally:
+            if stdin: stdin.close()
+            if stdout: stdout.close()
+            
+def redirection(cmd):   # Step 3
+    stdin_file = None
+    stdout_file = None
+    append_mode = False
+    
+    tokens = shlex.split(cmd)
+    command = []
+    i = 0
+    
+    while i < len(tokens):
+        if tokens[i] == ">":     # output redirection
+            stdout_file = tokens[i+1]
+            i += 2
+        elif tokens[i] == "<":   # input redirection
+            stdin_file = tokens[i+1]
+            i += 2
+        elif(tokens[i] == ">>"):  # output append
+            stdout_file = tokens[i+1]
+            append_mode = True
+            i += 2
+        else:
+            command.append(tokens[i])
+            i += 1
+    
+    return command, stdin_file, stdout_file, append_mode
+        
+            
+        
+    
 
 while True:
+    print()
     cmd = input("Enter the command: ")
     if cmd.lower() == "exit":
         print("Chal Bye")
