@@ -1,0 +1,28 @@
+COMMAND:
+program
+
+CONTEXT SWITCHES:
+voluntary_ctxt_switches: 3
+nonvoluntary_ctxt_switches: 1
+
+OPEN FILES:
+total 0
+lrwx------ 1 user user 64 Aug 15 14:32 0 -> /dev/pts/0
+lrwx------ 1 user user 64 Aug 15 14:32 1 -> /dev/pts/0
+lrwx------ 1 user user 64 Aug 15 14:32 2 -> /dev/pts/0
+
+I/O BYTES:
+rchar: 120
+wchar: 50
+syscr: 0
+read_bytes: 0
+write_bytes: 0
+cancelled_write_bytes: 0
+
+ENVIRONMENT VARIABLES:
+PATH=/usr/local/sbin:/usr/local/bin:/usr/sbin:/usr/bin
+HOME=/home/user
+LANG=en_US.UTF-8
+LOGNAME=user
+PWD=/home/user
+SHELL=/bin/bash
