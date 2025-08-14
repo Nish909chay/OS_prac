@@ -1,0 +1,68 @@
+*** arch/x86/entry/syscalls/syscall_64.tbl.orig	2025-08-15 12:00:00.000000000 +0530
+--- arch/x86/entry/syscalls/syscall_64.tbl	2025-08-15 12:05:00.000000000 +0530
+***************
+*** 450		common	getrandom		__x64_sys_getrandom
+--- 450		common	getrandom		__x64_sys_getrandom
++451	64	common	get_ancestry		__x64_sys_get_ancestry
+
+*** include/linux/syscalls.h.orig	2025-08-15 12:00:00.000000000 +0530
+--- include/linux/syscalls.h	2025-08-15 12:05:00.000000000 +0530
+***************
+@@
+ asmlinkage long sys_getrandom(char __user *buf, size_t count, unsigned int flags);
++
++asmlinkage long sys_get_ancestry(pid_t pid);
+
+*** kernel/sys.c.orig	2025-08-15 12:00:00.000000000 +0530
+--- kernel/sys.c	2025-08-15 12:10:00.000000000 +0530
+***************
+@@
+ #include <linux/utsname.h>
++#include <linux/sched/signal.h>
++#include <linux/pid.h>
++#include <linux/pid_namespace.h>
++
++SYSCALL_DEFINE1(get_ancestry, pid_t, pid)
++{
++    struct task_struct *task;
++    struct pid *p;
++
++    p = find_get_pid(pid);
++    if (!p)
++        return -ESRCH;
++
++    task = pid_task(p, PIDTYPE_PID);
++    if (!task)
++        return -ESRCH;
++
++    printk(KERN_INFO "PID ancestry for %d:\n", pid);
++    while (task) {
++        printk(KERN_INFO " -> %d (%s)\n", task->pid, task->comm);
++        if (task->pid == 1)
++            break;
++        task = task->real_parent;
++    }
++    return 0;
++}
+
+*** user/call_ancestry.c.orig	1970-01-01 05:30:00.000000000 +0530
+--- user/call_ancestry.c	2025-08-15 12:15:00.000000000 +0530
+***************
++// User program to call get_ancestry syscall without syscall()
++#include <stdio.h>
++#include <unistd.h>
++
++int main() {
++    pid_t pid = getpid();
++    printf("Current PID: %d\n", pid);
++    long res;
++    asm volatile (
++        "movq $451, %%rax\n\t"   /* Syscall number */
++        "movq %1, %%rdi\n\t"     /* Argument: pid */
++        "syscall\n\t"
++        "movq %%rax, %0\n\t"
++        : "=r"(res) : "r"((long)pid) : "%rax", "%rdi"
++    );
++    printf("Syscall returned: %ld\n", res);
++    return 0;
++}
