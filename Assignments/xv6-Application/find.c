@@ -3,15 +3,13 @@
 #include "user.h"
 #include "fs.h"
 
-// Options structure
 struct find_options {
-    char *name_pattern;     // -name pattern
-    int print_mode;         // -print (default behavior)
+    char *name_pattern;     // -name 
+    int print_mode;         // -print 
     int delete_mode;        // -delete
     int empty_only;         // -empty
     int recursive;          // -r
     int list_files;         // -l
-    char *exec_cmd;         // -exec command
 };
 
 int files_found = 0;
@@ -38,7 +36,6 @@ int matchPattern(char *pattern, char *filename) {
     return 0;
 }
 
-// Check if file/directory is empty
 int isEmpty(char *path, struct stat *st) {
     if(st->type == T_FILE) {
         return st->size == 0;
@@ -58,7 +55,7 @@ int isEmpty(char *path, struct stat *st) {
             if(strcmp(de.name, ".") == 0 || strcmp(de.name, "..") == 0)
                 continue;
             count++;
-            break; // Found at least one entry
+            break; 
         }
         close(fd);
         return count == 0;
