@@ -9,7 +9,7 @@ $ it is file or directory metabdata - type, permissionss, size, owner etc
 $ inode number is used to index inode - when OS walnt to access a file -> OS searches the directory -> the directory will have inode num for that file -> OS retrives metadata for that inode from inode table  
 $ inode table hota hai disk pe 
 
-Q) stat ka structure :
+xv6answers.tQ) stat ka structure :
 struct stat {
     int dev;     // file system device
     uint ino;    // inode number
