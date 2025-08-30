@@ -1,0 +1,107 @@
+1) " gcc -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 
+  -Wall -MD -ggdb -m32  -fno-omit-frame-pointer 
+  -fno-stack-protector -fno-pie -no-pie   -c -o proc.o proc.c " 
+
+    a) -m32 is an option that tell the GCC to cpmpile the code for 32 it arch. 
+    b) -O2 is used for moderate optimizations such as dead code remkival, loop optimizations, function inlinug(technique where the compiler replaces the func call with the actial function code itself as a part of optimixation which reduces the overhead of jumping to another memory in location where the function resides)
+    c) -static loads all your library functions directly into athe executabe this is because :
+        -In kernel space, there is no concept of dynamic linking.
+        -The kernel cannot call any user-space shared library — it must have all code self-contained.
+        - So all functions the kernel uses must be statically linked into the kernel image 
+
+2) OBJS var indicates all the object fiels that needs to be linked together to create the kernel binary
+
+3) fs.img is created using a MakeFile rule (used bty make)
+    rule - fs.img: mkfs README $(UPROGS)
+	        ./mkfs fs.img README $(UPROGS)
+    mkfs is a program that creates the filesystem image(written in mkfs.c file(takes file as an argument ))
+    it creates a simple fs img with:
+        - inode
+        - superblock
+        - data blocks 
+        - directory struct
+    is an xv6 program
+
+4) make chooses the commands by :
+    - building dependencies 
+    - finding all relevnt rules that can build the target
+
+5) make clean will :
+    - it removes all the files generated during compilation (obj, temp,execuatbels, dependency files(.d), diassembled code)
+
+6) Code Call Sequence :
+    1. bootasm.S:'start'     -> basic environment, enables A20
+    2. bootasm.S:'start32'   -> Switches to 32-bit mode
+    3. bootmain.c:bootmain() -> Loads kernel from disk to ram
+    4. entry.S:'entry'       -> sets page tables, enables paging
+    5. entry.S:'entry2'      -> Jumps to main with paging enabled
+    6. main.c:main()         -> Kernel init 
+
+7) MMU setup: movl %eax, %cr4
+     - no paging enabled
+     - page direc set up in entrypgdir
+
+8) to run main() in main.c - user stack used until process traps into kernel
+    - it ias allcoated duiting process creation i.e during exec() opr fork()
+    - LOC in entry.S movl $(stck + KSTACKSIZE), %esp
+
+9) Human Readable Valuse: defined in memlayout.h
+    #define EXTMEM   0x100000     (1MB)       // start of extnded mem
+    #define PHYSTOP  0xE000000        (224MB)   
+    #define KERNBASE 0x80000000  (2GB)        // first kernel virtual addr
+    #define KERNLINK (KERNBASE+EXTMEM)  (2GB + 1MB)
+
+10)  bootasm.S - Assembly code used to enable A20 gate (to access more than 1MB) which is usedf to then shift from real mode to pretected mode and the loads the kenel program(code + data) onto ram
+     entry.S - is used to set up page table and enbale paging
+
+11) List of func calls :
+        cat.c:printf() -> ulib.c:printf() -> ulib.c:write() -> usys.S:write -> trapasm.S:alltraps -> trap.c:trap() -> syscall.c:syscall() -> sysfile.c:sys_write()
+    
+12) 
+    a) 1 or 2
+    b) Phy Addr for .text = 
+    c) NO (actual sys call are in kernel space)
+    d) contains all syscalls stub because user.S generates stubs (wrappers) for all syscalls not just usedf ones
+    e) symbol tanble shows gloabl vars, funcation names, debug info
+
+13) .asm files are simply human readable representaion sof compiled binary 
+
+14) use:
+        - debugging
+        - verificaion
+
+15) Yes as:
+    - entry.S is assembled into entry.o.
+    - During linking, entry.o is linked together with all the other .o files (like proc.o, syscall.o, etc.) to form the kernel binary.
+    - Therefore, when you disassemble kernel into kernel.asm, the instructions from entry.S appear as part of it.
+
+16) NO as bootasm.S is a part of bootblock not kernel
+
+17) kernel.sym file is a symbol table file 
+    contains all symbols, variables and its addresses
+    created using  nm kernel | grep -v ' T ' > kernel.sym
+
+18) marsk the end of kernel's BSS section 
+    BSS is the BLOCK STARTED BY SYMBOL used yo hold the uninit globals and static vars (at runtime the os loader will init all of the bss vars to 0)
+
+19) logical address of 'entry' from entry.S = 0x80100000 (KERNLINK -> #define KERNLINK (KERNBASE+EXTMEM))
+
+20) logical address of 'entrypgdir' =  0x80109000 
+    physical address of 'entrypgdir' = 0x00109000
+
+21) entry.S - maps kernel virtual addr to physical mem and enables paging
+
+22) YES can be changes upto max ram size 
+
+23) size of proc[ ] in ptable = 64 processes
+    defined in param.h: 
+        #define NPROC 64  
+        struct proc proc[NPROC];
+
+24) 1
+
+25) KERNEL PHY ADDRS = 0x100000 (1MB = 104KB)
+
+26) after 64KB = free memory area after boot
+
+27) device driver function is readseg() and readsect() within bootmain.c
