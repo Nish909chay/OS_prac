@@ -1,0 +1,9 @@
+usertests
+Executed in   37.39 secs    fish           external
+   usr time   37.49 secs    0.00 micros   37.49 secs
+   sys time    0.62 secs  672.00 micros    0.62 secs
+
+stressfs:
+Executed in   18.67 secs    fish           external
+   usr time   18.28 secs  544.00 micros   18.28 secs
+   sys time    0.60 secs  707.00 micros    0.60 secs

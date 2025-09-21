@@ -1,0 +1,38 @@
+Q) Write a command that shows n'th line of a file
+
+  ~/5/OS/L/LT8  master ⇡4 !31 ?12 ····  05:44:06 PM
+❯ sed -n '4p' one.txt
+- basic text editor to make text change on input stream (files or pipeline)
+
+Q) Write a command that works on two files, containing MIS IDs in text. It finds MIS-IDs present in file1, but not in file2. 
+
+  ~/5thSem/OS/LabTasks/LT8  master ⇡4 !31 ?12 ············································· ✘ 2  07:17:11 PM
+❯ grep -Fxv -f mis_ids2.txt mis_ids1.txt
+
+642403001 
+642403002 
+642403003 
+642403004 
+642403005 
+642403006 
+642403007 
+642403008 
+642403009 
+642403010 
+642403011 
+642403012 
+642403013 
+642403014 
+642403015 
+
+  ~/5thSem/OS/LabTasks/LT8  master ⇡4 !31 ?12 ·················································  07:17:34 PM
+❯ grep -Fxv -f mis_ids1.txt mis_ids2.txt
+
+Q) Write a command that finds all HREF links in a HTML file
+
+  ~/5thSem/OS/LabTasks/LT8  master ⇡4 !31 ?12 ·················································  07:21:04 PM
+❯ grep -oP '(?<=href=")[^"]*' index.html
+https://www.w3.org/
+https://www.google.com/
+html_images.asp
+/css/default.asp

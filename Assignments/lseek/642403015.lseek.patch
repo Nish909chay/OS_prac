@@ -1,0 +1,175 @@
+diff --git a/Makefile b/Makefile
+index 09d790c..8137524 100644
+--- a/Makefile
++++ b/Makefile
+@@ -76,7 +76,7 @@ AS = $(TOOLPREFIX)gas
+ LD = $(TOOLPREFIX)ld
+ OBJCOPY = $(TOOLPREFIX)objcopy
+ OBJDUMP = $(TOOLPREFIX)objdump
+-CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -Werror -fno-omit-frame-pointer
++CFLAGS = -fno-pic -static -fno-builtin -fno-strict-aliasing -O2 -Wall -MD -ggdb -m32 -fno-omit-frame-pointer
+ CFLAGS += $(shell $(CC) -fno-stack-protector -E -x c /dev/null >/dev/null 2>&1 && echo -fno-stack-protector)
+ ASFLAGS = -m32 -gdwarf-2 -Wa,-divide
+ # FreeBSD ld wants ``elf_i386_fbsd''
+@@ -181,6 +181,7 @@ UPROGS=\
+ 	_usertests\
+ 	_wc\
+ 	_zombie\
++	_lseek
+ 
+ fs.img: mkfs README $(UPROGS)
+ 	./mkfs fs.img README $(UPROGS)
+diff --git a/defs.h b/defs.h
+index 82fb982..5be764e 100644
+--- a/defs.h
++++ b/defs.h
+@@ -120,6 +120,7 @@ void            userinit(void);
+ int             wait(void);
+ void            wakeup(void*);
+ void            yield(void);
++int				sys_hello(void);
+ 
+ // swtch.S
+ void            swtch(struct context**, struct context*);
+diff --git a/fcntl.h b/fcntl.h
+index d565483..cd2282b 100644
+--- a/fcntl.h
++++ b/fcntl.h
+@@ -2,3 +2,6 @@
+ #define O_WRONLY  0x001
+ #define O_RDWR    0x002
+ #define O_CREATE  0x200
++#define SEEK_SET  0
++#define SEEK_CUR  1
++#define SEEK_END  2
+diff --git a/syscall.c b/syscall.c
+index ee85261..6a051d7 100644
+--- a/syscall.c
++++ b/syscall.c
+@@ -103,6 +103,8 @@ extern int sys_unlink(void);
+ extern int sys_wait(void);
+ extern int sys_write(void);
+ extern int sys_uptime(void);
++extern int sys_hello1(void);
++extern int sys_lseek(void);
+ 
+ static int (*syscalls[])(void) = {
+ [SYS_fork]    sys_fork,
+@@ -126,6 +128,8 @@ static int (*syscalls[])(void) = {
+ [SYS_link]    sys_link,
+ [SYS_mkdir]   sys_mkdir,
+ [SYS_close]   sys_close,
++[SYS_hello1]  sys_hello1,
++[SYS_lseek]   sys_lseek,
+ };
+ 
+ void
+diff --git a/syscall.h b/syscall.h
+index bc5f356..a88402b 100644
+--- a/syscall.h
++++ b/syscall.h
+@@ -20,3 +20,5 @@
+ #define SYS_link   19
+ #define SYS_mkdir  20
+ #define SYS_close  21
++#define SYS_hello1 22
++#define SYS_lseek  23
+diff --git a/sysfile.c b/sysfile.c
+index bfe61b7..ad6b82f 100644
+--- a/sysfile.c
++++ b/sysfile.c
+@@ -442,3 +442,56 @@ sys_pipe(void)
+   fd[1] = fd1;
+   return 0;
+ }
++
++// lseeek sys call handler 
++int
++sys_lseek(void)
++{
++  struct file *f;
++  int fd;
++  int offset;
++  int whence;	// it tells from where the ofset must be added
++  struct inode *ip;
++  uint fsize = 0;
++  int base = 0;	// starting point depends on whence 
++  long long calc = 0;	// calculated offset after adding whence
++
++  if(argfd(0, &fd, &f) < 0)
++    return -1;
++  if(argint(1, &offset) < 0)
++    return -1;
++  if(argint(2, &whence) < 0)
++    return -1;
++
++  // Only inode-backed regular files are seekable
++  if(f->type != FD_INODE)
++    return -1;
++
++  ip = f->ip;
++  if(ip == 0)
++    return -1;
++
++  // Disallow directories and devices
++  if(ip->type != T_FILE)
++    return -1;
++
++  ilock(ip);
++  fsize = ip->size;
++  iunlock(ip);
++
++  switch(whence){
++    case SEEK_SET: base = 0; break;
++    case SEEK_CUR: base = f->off; break;
++    case SEEK_END: base = fsize; break;
++    default: return -1;
++  }
++
++  calc = (long long)base + (long long)offset;
++
++  if(calc < 0 || calc > (long long)fsize)
++    return -1;
++
++  f->off = (uint)calc;
++  return f->off;
++}
++
+diff --git a/sysproc.c b/sysproc.c
+index 0686d29..b171a8d 100644
+--- a/sysproc.c
++++ b/sysproc.c
+@@ -89,3 +89,10 @@ sys_uptime(void)
+   release(&tickslock);
+   return xticks;
+ }
++
++int
++sys_hello1(void)
++{
++  cprintf("Hello, World\n");
++  return 0;
++}
+diff --git a/user.h b/user.h
+index 4f99c52..e0c7bdd 100644
+--- a/user.h
++++ b/user.h
+@@ -23,6 +23,8 @@ int getpid(void);
+ char* sbrk(int);
+ int sleep(int);
+ int uptime(void);
++int hello1(void);
++int lseek(int, int, int);
+ 
+ // ulib.c
+ int stat(const char*, struct stat*);
+diff --git a/usys.S b/usys.S
+index 8bfd8a1..0b59166 100644
+--- a/usys.S
++++ b/usys.S
+@@ -29,3 +29,5 @@ SYSCALL(getpid)
+ SYSCALL(sbrk)
+ SYSCALL(sleep)
+ SYSCALL(uptime)
++SYSCALL(hello1)
++SYSCALL(lseek)

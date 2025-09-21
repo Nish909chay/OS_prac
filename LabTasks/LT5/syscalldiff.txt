@@ -1,0 +1,4 @@
+1. Process Mgmnt: fork() + wait() are the only basic process syscalls wherass Linux provides waitpid(), clone(), and many advanced options.
+2. Memory Mgmnt: xv6 uses only sbrk() to grow the heap but Linux supports mmap(), brk(), mprotect(), malloc() backed by virtual memory.
+3. File System/I/O: xv6 has only open, read, write, close, and a few basics but  Linux has extended syscalls like openat(), dup2(), poll(), epoll(), ioctl() for complex I/O.
+

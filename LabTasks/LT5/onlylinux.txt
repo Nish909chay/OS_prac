@@ -1,0 +1,9 @@
+$ echo MnM | tr ' ' '\n' | grep AAAAAAAAAAA
+exec: fail
+exec tr failed
+$ ls --color=auto | grep '\.Wow'
+ls: cannot open --color=auto
+$ dmesg | grep "gdtr"
+exec: fail
+exec dmesg failed
+$
