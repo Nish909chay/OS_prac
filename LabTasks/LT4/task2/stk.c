@@ -1,3 +1,4 @@
+// gcc -S file.c - 
 #include<stdio.h>
 
 void reverse(int n)

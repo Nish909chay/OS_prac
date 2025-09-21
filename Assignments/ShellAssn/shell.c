@@ -36,13 +36,14 @@ void run_command(char *line);
 
 int main() {
     init_default_path();
-    update_prompt_cwd();
+    update_prompt_cwd();    // nishchay@ubuntu:~/projects$
 
     char input_line[MAX_INPUT];
 
     while (1) {
         printf("%s", prompt);
-        fflush(stdout);
+        fflush(stdout);     // forces data out of buffer as stdout is 
+        // line buffered so unless buffer is full or it finds \n the output is not written 
 
         if (fgets(input_line, sizeof(input_line), stdin) == NULL) {
             printf("\nBye!\n");
@@ -183,12 +184,12 @@ void set_path(const char *path_str) {
 void init_default_path() {
     const char *default_path = "/bin:/usr/bin";
     char *paths_copy = strdup(default_path);
-    char *token = strtok(paths_copy, ":");
+    char *token = strtok(paths_copy, ":");  // split the token based on delimiters ":"
     path_count = 0;
     while (token && path_count < MAX_PATHS) {
         shell_paths[path_count++] = strdup(token);
         token = strtok(NULL, ":");
-    }
+    }   // parses "/bin:/usr/bin" into 2 usable paths - /bin and /use/bin
     free(paths_copy);
 }
 

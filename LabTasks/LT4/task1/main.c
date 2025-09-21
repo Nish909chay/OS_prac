@@ -1,3 +1,5 @@
+// To show that C programs can be modularized, compiled separately, and then combined.
+
 #include<stdio.h>
 int add(int a, int b);
 int sub(int a, int b);
@@ -8,3 +10,10 @@ int main()
 
     return 0;
 }
+
+/*
+make obj files
+gcc -c main.c  
+gcc -c a.c      
+gcc -c b.c 
+*/

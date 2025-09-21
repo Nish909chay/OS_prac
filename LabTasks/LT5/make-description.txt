@@ -1,0 +1,5 @@
+Line 79 CFLAGS =   → Compiler flags used to control optimization, debugging, and warning behavior when building xv6.
+Line 96 dd if=kernel   → Used dd to copy the compiled kernel into a disk image file (that acts like writing kernel to disk).
+Line 148 _%:   → a pattern rule in Makefile which has to be followed defines how to build targets that match a certain suffix/pattern.
+Line 159 mkfs   → createe the xv6 filesystem image and puts necessary files (like user programs) into it.
+Line 224 qemu   → Targets to run xv6 inside QEMU using the generated kernel and filesystem image.

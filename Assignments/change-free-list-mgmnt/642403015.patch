@@ -1,0 +1,66 @@
+diff --git a/kalloc.c b/kalloc.c
+index e5f3c44..b27c012 100644
+--- a/kalloc.c
++++ b/kalloc.c
+@@ -12,10 +12,21 @@
+ struct spinlock kmem_lock;
+-struct run {
+-  struct run *next;
+-};
+-
+-static struct run *freelist;
++struct frame_bucket {
++  char *slots[PHYSTOP/PGSIZE];
++  int top;
++};
++
++static struct frame_bucket mem_bucket;
+ 
+ void
+ kinit1(void *vstart, void *vend)
+ {
+-  initlock(&kmem_lock, "kmem");
+-  freerange(vstart, vend);
++  initlock(&kmem_lock, "kmem_bucket");
++  mem_bucket.top = 0;
++  freerange(vstart, vend);
+ }
+ 
+ void
+@@ -25,11 +36,26 @@ kinit2(void *vstart, void *vend)
+ {
+-  freerange(vstart, vend);
++  freerange(vstart, vend);
+ }
+ 
+// lets put released frame back into tha tracker
+ void
+ kfree(char *v)
+ {
+-  struct run *r;
+-  r = (struct run*)v;
+-  r->next = freelist;
+-  freelist = r;
++  acquire(&kmem_lock);
++  if(mem_bucket.top < (PHYSTOP/PGSIZE)){
++    mem_bucket.slots[mem_bucket.top++] = v;
++  }
++  release(&kmem_lock);
+ }
+ 
+ char*
+ kalloc(void)
+ {
+-  struct run *r;
+-  r = freelist;
+-  if(r)
+-    freelist = r->next;
+-  return (char*)r;
++  char *out = 0;
++  acquire(&kmem_lock);
++  if(mem_bucket.top > 0){
++    out = mem_bucket.slots[--mem_bucket.top];
++  }
++  release(&kmem_lock);
++  return out;
+ }

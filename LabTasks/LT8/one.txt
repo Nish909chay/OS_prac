@@ -1,0 +1,16 @@
+sed command 
+- means "stream editor"
+
+- basic text editor to make text change on input stream (files or pipeline)
+
+- sed [opt] 'command' [input file]
+
+- i = edit file in place [overwrite]
+  n = supress 
+  e = allow multiple commands
+  f = reads sed commands from file
+  r = use extended regex
+  
+- s/old-word/new-word/specific occurence to replace  - for substitution operation
+
+- 
